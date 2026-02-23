@@ -1,5 +1,5 @@
 use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion};
-use decaf377::Fq;
+use cycles_curve_bn254::Fq;
 use rand_chacha::ChaChaRng;
 use rand_core::{RngCore, SeedableRng};
 

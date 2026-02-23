@@ -1,5 +1,5 @@
 use ark_relations::r1cs::{ConstraintSystemRef, SynthesisError};
-use decaf377::r1cs::FqVar;
+use cycles_curve_bn254::r1cs::FqVar;
 use poseidon_permutation::r1cs::InstanceVar;
 
 use crate::Fq;

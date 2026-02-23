@@ -1,6 +1,6 @@
 #![allow(non_snake_case)]
 
-use decaf377::Fq;
+use cycles_curve_bn254::Fq;
 use poseidon_parameters::v1::{Alpha, MatrixOperations, PoseidonParameters};
 
 /// Represents a generic instance of `Poseidon`.

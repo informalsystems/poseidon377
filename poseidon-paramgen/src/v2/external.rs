@@ -73,7 +73,7 @@ pub fn generate<F: PrimeField, const STATE_SIZE: usize, const NUM_MDS_ELEMENTS: 
 
 #[cfg(test)]
 mod tests {
-    use decaf377::Fq;
+    use cycles_curve_bn254::Fq;
 
     use super::*;
 

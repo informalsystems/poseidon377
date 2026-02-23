@@ -3,7 +3,7 @@ use crate::{
     matrix::{Matrix, SquareMatrix},
     matrix_ops::{MatrixOperations, SquareMatrixOperations},
 };
-use decaf377::Fq;
+use cycles_curve_bn254::Fq;
 
 /// Represents an MDS (maximum distance separable) matrix.
 #[derive(Clone, Debug, PartialEq, Eq)]

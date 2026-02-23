@@ -1,7 +1,7 @@
 use core::slice::Chunks;
 
 use crate::error::PoseidonParameterError;
-use decaf377::Fq;
+use cycles_curve_bn254::Fq;
 
 pub trait MatrixOperations {
     /// Create a new matrix

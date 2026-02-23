@@ -5,7 +5,7 @@ use ark_r1cs_std::prelude::{AllocVar, EqGadget};
 use ark_relations::r1cs::{ConstraintSynthesizer, ToConstraintField};
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 use ark_snark::SNARK;
-use decaf377::{
+use cycles_curve_bn254::{
     r1cs::{CountConstraints, FqVar},
     Bls12_377, Fq,
 };

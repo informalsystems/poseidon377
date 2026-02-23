@@ -1,4 +1,4 @@
-use decaf377::Fq;
+use cycles_curve_bn254::Fq;
 use proptest::prelude::*;
 
 use poseidon_parameters::v1::{mat_mul, square_mat_mul};

@@ -3,7 +3,7 @@ use ark_std::vec::Vec;
 
 use ark_r1cs_std::{fields::fp::FpVar, prelude::*};
 use ark_relations::r1cs::ConstraintSystemRef;
-use decaf377::Fq;
+use cycles_curve_bn254::Fq;
 use poseidon_parameters::v1::{Alpha, MatrixOperations, PoseidonParameters};
 
 /// Represents a Poseidon permutation instance.

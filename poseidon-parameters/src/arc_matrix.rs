@@ -1,5 +1,5 @@
 use crate::{error::PoseidonParameterError, matrix::Matrix, matrix_ops::MatrixOperations};
-use decaf377::Fq;
+use cycles_curve_bn254::Fq;
 
 /// Represents an matrix of round constants.
 ///

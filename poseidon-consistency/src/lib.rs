@@ -5,7 +5,7 @@ mod tests {
     use ark_ed_on_bls12_377::Fq as ArkFq;
     use ark_ff::BigInteger256;
 
-    use decaf377::Fq;
+    use cycles_curve_bn254::Fq;
     use poseidon377::{RATE_2_PARAMS, RATE_4_PARAMS};
     use poseidon_permutation::Instance;
     use proptest::prelude::*;

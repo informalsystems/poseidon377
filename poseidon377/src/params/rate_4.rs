@@ -1,4 +1,4 @@
-use decaf377::Fq;
+use cycles_curve_bn254::Fq;
 use poseidon_parameters::v1::{
     Alpha, ArcMatrix, Matrix, MdsMatrix, OptimizedArcMatrix, OptimizedMdsMatrices,
     PoseidonParameters, RoundNumbers, SquareMatrix,

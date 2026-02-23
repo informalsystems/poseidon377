@@ -3,7 +3,7 @@ use core::ops::Mul;
 
 use crate::error::PoseidonParameterError;
 use crate::matrix_ops::{dot_product, MatrixOperations, SquareMatrixOperations};
-use decaf377::Fq;
+use cycles_curve_bn254::Fq;
 
 /// Represents a matrix over `PrimeField` elements.
 ///
