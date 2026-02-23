@@ -86,7 +86,7 @@ impl<
         self.permute();
 
         // Emit a single element since this is a n:1 hash.
-        self.state_words[1]
+        self.state_words[0]
     }
 
     /// Print out internal state.
@@ -168,7 +168,7 @@ impl<
         self.unoptimized_permute();
 
         // Emit a single element since this is a n:1 hash.
-        self.state_words[1]
+        self.state_words[0]
     }
 
     /// Permutes the internal state.
