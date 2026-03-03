@@ -83,6 +83,9 @@ impl Mat {
     fn determinant(&self) -> Fq {
         assert_eq!(self.rows, self.cols);
         let n = self.rows;
+        if n == 0 {
+            return Fq::from(1u64);
+        }
         if n == 1 {
             return self.get(0, 0);
         }
@@ -337,6 +340,342 @@ fn emit_square_matrix(out: &mut String, m: &Mat, type_str: &str) {
     write!(out, "            ])").unwrap();
 }
 
+fn fq_to_hex(fq: Fq) -> String {
+    let bytes = fq.to_bytes_le();
+    let mut hex = String::from("0x");
+    for b in bytes.iter().rev() {
+        hex.push_str(&format!("{:02x}", b));
+    }
+    hex
+}
+
+fn verify_optimization(
+    t: usize,
+    r_p: usize,
+    arc: &Mat,
+    mds: &Mat,
+    opt_arc: &Mat,
+    m_i: &Mat,
+    m00: Fq,
+    v_collection: &[Mat],
+    w_hat_collection: &[Mat],
+) {
+    let total_rounds = R_F + r_p;
+    let r_f = R_F / 2;
+
+    let mut state_init = vec![Fq::from(0u64); t];
+    if t >= 2 { state_init[1] = Fq::from(1u64); }
+
+    // --- Unoptimized permutation ---
+    let mut state_u = state_init.clone();
+    let rc = &arc.data;
+    let mut rc_idx = 0;
+
+    for _ in 0..r_f {
+        for i in 0..t { state_u[i] += rc[rc_idx]; rc_idx += 1; }
+        for i in 0..t { state_u[i] = state_u[i].power([5u64]); }
+        let prev = state_u.clone();
+        for i in 0..t {
+            state_u[i] = (0..t).map(|j| mds.get(i, j) * prev[j]).sum();
+        }
+    }
+    for _ in 0..r_p {
+        for i in 0..t { state_u[i] += rc[rc_idx]; rc_idx += 1; }
+        state_u[0] = state_u[0].power([5u64]);
+        let prev = state_u.clone();
+        for i in 0..t {
+            state_u[i] = (0..t).map(|j| mds.get(i, j) * prev[j]).sum();
+        }
+    }
+    for _ in 0..r_f {
+        for i in 0..t { state_u[i] += rc[rc_idx]; rc_idx += 1; }
+        for i in 0..t { state_u[i] = state_u[i].power([5u64]); }
+        let prev = state_u.clone();
+        for i in 0..t {
+            state_u[i] = (0..t).map(|j| mds.get(i, j) * prev[j]).sum();
+        }
+    }
+
+    // --- Optimized permutation ---
+    let mut state_o = state_init.clone();
+
+    // First R_f full rounds
+    for r in 0..r_f {
+        for i in 0..t { state_o[i] += opt_arc.get(r, i); }
+        for i in 0..t { state_o[i] = state_o[i].power([5u64]); }
+        let prev = state_o.clone();
+        for i in 0..t {
+            state_o[i] = (0..t).map(|j| mds.get(i, j) * prev[j]).sum();
+        }
+    }
+
+    // First partial round ARC (full) + M_i multiply
+    let mut rcc = r_f;
+    for i in 0..t { state_o[i] += opt_arc.get(rcc, i); }
+    {
+        let prev = state_o.clone();
+        for i in 0..t {
+            state_o[i] = (0..t).map(|j| m_i.get(i, j) * prev[j]).sum();
+        }
+    }
+
+    // Partial rounds (R_P - 1 iterations)
+    for r in 0..(r_p - 1) {
+        state_o[0] = state_o[0].power([5u64]);
+        rcc += 1;
+        state_o[0] += opt_arc.get(rcc, 0);
+        // sparse_mat_mul(r_p - r - 1)
+        let sp_idx = r_p - r - 1;
+        let prev = state_o.clone();
+        let mut add_row = vec![Fq::from(0u64); t - 1];
+        for i in 0..(t - 1) {
+            add_row[i] = v_collection[sp_idx].data[i] * prev[0] + prev[i + 1];
+        }
+        state_o[0] = m00 * prev[0]
+            + (0..(t - 1))
+                .map(|i| w_hat_collection[sp_idx].data[i] * prev[i + 1])
+                .sum::<Fq>();
+        for i in 0..(t - 1) {
+            state_o[i + 1] = add_row[i];
+        }
+    }
+
+    // Last partial round
+    state_o[0] = state_o[0].power([5u64]);
+    {
+        let sp_idx = 0;
+        let prev = state_o.clone();
+        let mut add_row = vec![Fq::from(0u64); t - 1];
+        for i in 0..(t - 1) {
+            add_row[i] = v_collection[sp_idx].data[i] * prev[0] + prev[i + 1];
+        }
+        state_o[0] = m00 * prev[0]
+            + (0..(t - 1))
+                .map(|i| w_hat_collection[sp_idx].data[i] * prev[i + 1])
+                .sum::<Fq>();
+        for i in 0..(t - 1) {
+            state_o[i + 1] = add_row[i];
+        }
+    }
+    rcc += 1;
+
+    // Final R_f full rounds
+    for _ in 0..r_f {
+        for i in 0..t { state_o[i] += opt_arc.get(rcc, i); }
+        for i in 0..t { state_o[i] = state_o[i].power([5u64]); }
+        let prev = state_o.clone();
+        for i in 0..t {
+            state_o[i] = (0..t).map(|j| mds.get(i, j) * prev[j]).sum();
+        }
+        rcc += 1;
+    }
+
+    eprintln!("  Unoptimized[0]: {}", fq_to_hex(state_u[0]));
+    eprintln!("  Optimized[0]:   {}", fq_to_hex(state_o[0]));
+    if state_u[0] == state_o[0] {
+        eprintln!("  Permutation MATCH ✓");
+    } else {
+        eprintln!("  Permutation MISMATCH ✗ — optimization is buggy for t={}", t);
+
+        bisect_divergence(t, r_p, arc, mds, opt_arc, m_i, m00, v_collection, w_hat_collection);
+    }
+
+    // Always check matrix decomposition
+    eprintln!("\n  Verifying M_i * sparse_product == MDS^R_P ...");
+    let total_rounds = R_F + r_p;
+    let mut mds_power = Mat::identity(t);
+    for _ in 0..r_p {
+        mds_power = mds.mul(&mds_power);
+    }
+
+    let mut sparse_product = Mat::identity(t);
+    for k in (0..r_p).rev() {
+        let mut sp_mat = Mat::identity(t);
+        sp_mat.set(0, 0, m00);
+        for i in 0..(t - 1) {
+            sp_mat.set(0, i + 1, w_hat_collection[k].data[i]);
+            sp_mat.set(i + 1, 0, v_collection[k].data[i]);
+        }
+        sparse_product = sp_mat.mul(&sparse_product);
+    }
+
+    let mi_sparse = m_i.mul(&sparse_product);
+    let match_product = (0..t*t).all(|idx| mi_sparse.data[idx] == mds_power.data[idx]);
+    eprintln!("  M_i * sparse_product == MDS^R_P: {}", if match_product { "YES ✓" } else { "NO ✗" });
+}
+
+fn bisect_divergence(
+    t: usize,
+    r_p: usize,
+    arc: &Mat,
+    mds: &Mat,
+    opt_arc: &Mat,
+    m_i: &Mat,
+    m00: Fq,
+    v_collection: &[Mat],
+    w_hat_collection: &[Mat],
+) {
+    let r_f = R_F / 2;
+
+    let mut state_init = vec![Fq::from(0u64); t];
+    if t >= 2 { state_init[1] = Fq::from(1u64); }
+
+    // Run unoptimized step-by-step, saving state after each round
+    let mut state_u = state_init.clone();
+    let rc = &arc.data;
+    let mut rc_idx = 0;
+    let mut unopt_states: Vec<Vec<Fq>> = Vec::new();
+
+    for _ in 0..r_f {
+        for i in 0..t { state_u[i] += rc[rc_idx]; rc_idx += 1; }
+        for i in 0..t { state_u[i] = state_u[i].power([5u64]); }
+        let prev = state_u.clone();
+        for i in 0..t {
+            state_u[i] = (0..t).map(|j| mds.get(i, j) * prev[j]).sum();
+        }
+        unopt_states.push(state_u.clone());
+    }
+    for _ in 0..r_p {
+        for i in 0..t { state_u[i] += rc[rc_idx]; rc_idx += 1; }
+        state_u[0] = state_u[0].power([5u64]);
+        let prev = state_u.clone();
+        for i in 0..t {
+            state_u[i] = (0..t).map(|j| mds.get(i, j) * prev[j]).sum();
+        }
+        unopt_states.push(state_u.clone());
+    }
+    for _ in 0..r_f {
+        for i in 0..t { state_u[i] += rc[rc_idx]; rc_idx += 1; }
+        for i in 0..t { state_u[i] = state_u[i].power([5u64]); }
+        let prev = state_u.clone();
+        for i in 0..t {
+            state_u[i] = (0..t).map(|j| mds.get(i, j) * prev[j]).sum();
+        }
+        unopt_states.push(state_u.clone());
+    }
+
+    // Run optimized step-by-step
+    let mut state_o = state_init.clone();
+
+    for r in 0..r_f {
+        for i in 0..t { state_o[i] += opt_arc.get(r, i); }
+        for i in 0..t { state_o[i] = state_o[i].power([5u64]); }
+        let prev = state_o.clone();
+        for i in 0..t {
+            state_o[i] = (0..t).map(|j| mds.get(i, j) * prev[j]).sum();
+        }
+        let round_num = r;
+        if state_o != unopt_states[round_num] {
+            eprintln!("  Divergence at full round {} (round_num={})", r, round_num);
+            eprintln!("    Unopt: {:?}", unopt_states[round_num].iter().map(|x| fq_to_hex(*x)).collect::<Vec<_>>());
+            eprintln!("    Opt:   {:?}", state_o.iter().map(|x| fq_to_hex(*x)).collect::<Vec<_>>());
+            return;
+        }
+    }
+    eprintln!("  First {} full rounds match.", r_f);
+
+    // Now the tricky part: the optimized partial rounds transform the state differently
+    // (ARC absorption + sparse matrices), so intermediate states won't match round-by-round.
+    // Instead, the states should match AFTER ALL partial rounds complete.
+    //
+    // Let's check after all partial rounds:
+    let mut rcc = r_f;
+    for i in 0..t { state_o[i] += opt_arc.get(rcc, i); }
+    {
+        let prev = state_o.clone();
+        for i in 0..t {
+            state_o[i] = (0..t).map(|j| m_i.get(i, j) * prev[j]).sum();
+        }
+    }
+    for r in 0..(r_p - 1) {
+        state_o[0] = state_o[0].power([5u64]);
+        rcc += 1;
+        state_o[0] += opt_arc.get(rcc, 0);
+        let sp_idx = r_p - r - 1;
+        let prev = state_o.clone();
+        let mut add_row = vec![Fq::from(0u64); t - 1];
+        for i in 0..(t - 1) {
+            add_row[i] = v_collection[sp_idx].data[i] * prev[0] + prev[i + 1];
+        }
+        state_o[0] = m00 * prev[0]
+            + (0..(t - 1))
+                .map(|i| w_hat_collection[sp_idx].data[i] * prev[i + 1])
+                .sum::<Fq>();
+        for i in 0..(t - 1) {
+            state_o[i + 1] = add_row[i];
+        }
+    }
+    state_o[0] = state_o[0].power([5u64]);
+    {
+        let sp_idx = 0;
+        let prev = state_o.clone();
+        let mut add_row = vec![Fq::from(0u64); t - 1];
+        for i in 0..(t - 1) {
+            add_row[i] = v_collection[sp_idx].data[i] * prev[0] + prev[i + 1];
+        }
+        state_o[0] = m00 * prev[0]
+            + (0..(t - 1))
+                .map(|i| w_hat_collection[sp_idx].data[i] * prev[i + 1])
+                .sum::<Fq>();
+        for i in 0..(t - 1) {
+            state_o[i + 1] = add_row[i];
+        }
+    }
+    rcc += 1;
+
+    let after_partial_idx = r_f + r_p - 1;
+    if state_o == unopt_states[after_partial_idx] {
+        eprintln!("  After all partial rounds: MATCH");
+    } else {
+        eprintln!("  After all partial rounds: MISMATCH");
+        eprintln!("    Unopt: {:?}", unopt_states[after_partial_idx].iter().map(|x| fq_to_hex(*x)).collect::<Vec<_>>());
+        eprintln!("    Opt:   {:?}", state_o.iter().map(|x| fq_to_hex(*x)).collect::<Vec<_>>());
+        eprintln!("  Bug is in the partial round optimization (ARC or sparse matrices).");
+
+        // Also verify: does the M_i * product-of-sparse-matrices equal M^R_P?
+        eprintln!("\n  Verifying M_i * sparse_product == MDS^R_P ...");
+        let mut mds_power = Mat::identity(t);
+        for _ in 0..r_p {
+            mds_power = mds.mul(&mds_power);
+        }
+
+        let mut sparse_product = Mat::identity(t);
+        for k in (0..r_p).rev() {
+            let mut sp_mat = Mat::identity(t);
+            sp_mat.set(0, 0, m00);
+            for i in 0..(t - 1) {
+                sp_mat.set(0, i + 1, w_hat_collection[k].data[i]);
+                sp_mat.set(i + 1, 0, v_collection[k].data[i]);
+            }
+            sparse_product = sp_mat.mul(&sparse_product);
+        }
+
+        let mi_sparse = m_i.mul(&sparse_product);
+
+        let match_product = (0..t*t).all(|idx| mi_sparse.data[idx] == mds_power.data[idx]);
+        if match_product {
+            eprintln!("  M_i * sparse_product == MDS^R_P: YES ✓");
+            eprintln!("  Matrix decomposition is correct; bug is in ARC optimization.");
+        } else {
+            eprintln!("  M_i * sparse_product == MDS^R_P: NO ✗");
+            eprintln!("  Matrix decomposition is WRONG.");
+
+            eprintln!("  MDS^R_P:");
+            for i in 0..t {
+                for j in 0..t {
+                    eprintln!("    [{},{}] = {}", i, j, fq_to_hex(mds_power.get(i, j)));
+                }
+            }
+            eprintln!("  M_i * sparse_product:");
+            for i in 0..t {
+                for j in 0..t {
+                    eprintln!("    [{},{}] = {}", i, j, fq_to_hex(mi_sparse.get(i, j)));
+                }
+            }
+        }
+    }
+}
+
 fn main() {
     assert_eq!(
         std::mem::size_of::<Fq>(),
@@ -376,6 +715,18 @@ fn main() {
     let m_inverse = mds.inverse();
 
     let (m_i, v_collection, w_hat_collection) = calc_equivalent_matrices(&mds, t, r_p);
+
+    eprintln!("\nVerifying optimization for t={}...", t);
+    verify_optimization(t, r_p, &arc, &mds, &opt_arc, &m_i, m00, &v_collection, &w_hat_collection);
+
+    if t == 2 {
+        eprintln!("\n  M_00 = {}", fq_to_hex(m00));
+        eprintln!("  Dumping first 3 and last 3 sparse entries (iden3 S order = reversed):");
+        for idx in [r_p - 1, r_p - 2, r_p - 3, 2usize, 1, 0] {
+            eprintln!("    v_collection[{}] = {}", idx, fq_to_hex(v_collection[idx].data[0]));
+            eprintln!("    w_hat_collection[{}] = {}", idx, fq_to_hex(w_hat_collection[idx].data[0]));
+        }
+    }
 
     let mut s = String::with_capacity(1024 * 256);
 
