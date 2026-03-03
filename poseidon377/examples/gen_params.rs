@@ -179,10 +179,8 @@ fn format_fq(fq: Fq) -> String {
 // Poseidon parameter generation
 // ---------------------------------------------------------------------------
 
-const T: usize = 3;
 const R_F: usize = 8;
-const R_P: usize = 57;
-const TOTAL_ROUNDS: usize = R_F + R_P;
+const N_ROUNDS_P: [usize; 16] = [56, 57, 56, 60, 60, 63, 64, 63, 60, 66, 60, 65, 70, 60, 64, 68];
 
 fn parse_hex(s: &str) -> Fq {
     let s = s.strip_prefix("0x").unwrap_or(s);
@@ -197,49 +195,50 @@ fn parse_hex(s: &str) -> Fq {
     Fq::from(limbs[0]) + Fq::from(limbs[1]) * b64 + Fq::from(limbs[2]) * b64 * b64 + Fq::from(limbs[3]) * b64 * b64 * b64
 }
 
-fn load_iden3_constants(path: &str) -> (Mat, Mat) {
+fn load_iden3_constants(path: &str, t: usize, total_rounds: usize) -> (Mat, Mat) {
     let json_str = std::fs::read_to_string(path)
         .unwrap_or_else(|e| panic!("failed to read {}: {}", path, e));
     let root: Value = serde_json::from_str(&json_str).expect("invalid JSON");
 
-    let c_arr = root["C"][1].as_array().expect("C[1] must be an array");
-    assert_eq!(c_arr.len(), TOTAL_ROUNDS * T, "expected {} round constants, got {}", TOTAL_ROUNDS * T, c_arr.len());
+    let idx = t - 2;
+    let c_arr = root["C"][idx].as_array().unwrap_or_else(|| panic!("C[{}] must be an array", idx));
+    assert_eq!(c_arr.len(), total_rounds * t, "expected {} round constants, got {}", total_rounds * t, c_arr.len());
     let arc_elems: Vec<Fq> = c_arr.iter()
         .map(|v| parse_hex(v.as_str().expect("C entry must be string")))
         .collect();
 
-    let m_arr = root["M"][1].as_array().expect("M[1] must be an array");
-    assert_eq!(m_arr.len(), T, "expected {} MDS rows, got {}", T, m_arr.len());
-    let mut mds_elems = Vec::with_capacity(T * T);
+    let m_arr = root["M"][idx].as_array().unwrap_or_else(|| panic!("M[{}] must be an array", idx));
+    assert_eq!(m_arr.len(), t, "expected {} MDS rows, got {}", t, m_arr.len());
+    let mut mds_elems = Vec::with_capacity(t * t);
     for row in m_arr {
         let row_arr = row.as_array().expect("M row must be an array");
-        assert_eq!(row_arr.len(), T);
+        assert_eq!(row_arr.len(), t);
         for val in row_arr {
             mds_elems.push(parse_hex(val.as_str().expect("M entry must be string")));
         }
     }
 
-    (Mat::new(T, T, mds_elems), Mat::new(TOTAL_ROUNDS, T, arc_elems))
+    (Mat::new(t, t, mds_elems), Mat::new(total_rounds, t, arc_elems))
 }
 
 // Appendix B optimized round constants
-fn optimized_arc(arc: &Mat, mds: &Mat) -> Mat {
+fn optimized_arc(arc: &Mat, mds: &Mat, t: usize, total_rounds: usize) -> Mat {
     let mut ct = arc.clone();
     let r_f = R_F / 2;
     let mds_t = mds.transpose();
     let mds_inv = mds_t.inverse();
 
-    for r in ((r_f)..(TOTAL_ROUNDS - 1 - r_f)).rev() {
+    for r in ((r_f)..(total_rounds - 1 - r_f)).rev() {
         let row_rp1 = ct.row_vec(r + 1);
         let inv_cip1 = row_rp1.mul(&mds_inv);
-        assert_eq!(inv_cip1.cols, T);
+        assert_eq!(inv_cip1.cols, t);
 
-        for j in 1..T {
+        for j in 1..t {
             let cur = ct.get(r, j);
             ct.set(r, j, cur + inv_cip1.get(0, j));
         }
 
-        let mut new_row = vec![Fq::from(0u64); T];
+        let mut new_row = vec![Fq::from(0u64); t];
         new_row[0] = inv_cip1.get(0, 0);
         ct.set_row(r + 1, &new_row);
     }
@@ -287,14 +286,14 @@ fn doubleprime_matrix(m_hat_inv: &Mat, w: &Mat, v: &Mat, m00: Fq) -> Mat {
     out
 }
 
-fn calc_equivalent_matrices(mds: &Mat) -> (Mat, Vec<Mat>, Vec<Mat>) {
+fn calc_equivalent_matrices(mds: &Mat, t: usize, r_p: usize) -> (Mat, Vec<Mat>, Vec<Mat>) {
     let m_t = mds.transpose();
     let mut m_mul = m_t.clone();
     let mut m_i = prime_matrix(&m_mul.hat());
-    let mut v_collection = Vec::with_capacity(R_P);
-    let mut w_hat_collection = Vec::with_capacity(R_P);
+    let mut v_collection = Vec::with_capacity(r_p);
+    let mut w_hat_collection = Vec::with_capacity(r_p);
 
-    for _ in (0..R_P).rev() {
+    for _ in (0..r_p).rev() {
         let m_hat = m_mul.hat();
         let w = m_mul.w_col();
         let v = m_mul.v_row();
@@ -303,7 +302,7 @@ fn calc_equivalent_matrices(mds: &Mat) -> (Mat, Vec<Mat>, Vec<Mat>) {
         let w_hat = m_hat_inv.mul(&w);
         w_hat_collection.push(w_hat);
         m_i = prime_matrix(&m_hat);
-        m_mul = Mat::new(T, T, m_t.mul(&m_i).data);
+        m_mul = Mat::new(t, t, m_t.mul(&m_i).data);
     }
 
     (m_i.transpose(), v_collection, w_hat_collection)
@@ -345,12 +344,27 @@ fn main() {
         "Fq must be 32 bytes for transmute"
     );
 
-    let constants_path = std::env::args().nth(1).unwrap_or_else(|| {
-        eprintln!("Usage: gen_params <path-to-poseidon_constants.json>");
+    let args: Vec<String> = std::env::args().collect();
+    if args.len() != 3 {
+        eprintln!("Usage: gen_params <t> <path-to-poseidon_constants.json>");
         std::process::exit(1);
-    });
-    let (mds, arc) = load_iden3_constants(&constants_path);
-    let opt_arc = optimized_arc(&arc, &mds);
+    }
+    let t: usize = args[1].parse().expect("t must be an integer");
+    assert!(t >= 2 && t <= 17, "t must be in [2, 17]");
+    let constants_path = &args[2];
+
+    let r_p = N_ROUNDS_P[t - 2];
+    let total_rounds = R_F + r_p;
+    let rate = t - 1;
+    let total_elements = total_rounds * t;
+    let mds_elements = t * t;
+    let sm1 = t - 1;
+    let sm1_elements = sm1 * sm1;
+
+    eprintln!("t={}, rate={}, R_F={}, R_P={}, total_rounds={}, total_elements={}", t, rate, R_F, r_p, total_rounds, total_elements);
+
+    let (mds, arc) = load_iden3_constants(constants_path, t, total_rounds);
+    let opt_arc = optimized_arc(&arc, &mds, t, total_rounds);
 
     let m_hat = mds.hat();
     let m_hat_inv = m_hat.inverse();
@@ -361,7 +375,7 @@ fn main() {
     let m_doubleprime = doubleprime_matrix(&m_hat_inv, &w, &v, m00);
     let m_inverse = mds.inverse();
 
-    let (m_i, v_collection, w_hat_collection) = calc_equivalent_matrices(&mds);
+    let (m_i, v_collection, w_hat_collection) = calc_equivalent_matrices(&mds, t, r_p);
 
     let mut s = String::with_capacity(1024 * 256);
 
@@ -373,105 +387,96 @@ use poseidon_parameters::v1::{{
     PoseidonParameters, RoundNumbers, SquareMatrix,
 }};
 
-/// Parameters for the rate-2 instance of Poseidon.
-pub const fn rate_2() -> PoseidonParameters<3, 2, 9, 4, {TOTAL_ROUNDS}, 3, {TOTAL_ELEMENTS}, {R_P}> {{
+/// Parameters for the rate-{RATE} instance of Poseidon.
+pub const fn rate_{RATE}() -> PoseidonParameters<{T}, {SM1}, {MDS_ELEMS}, {SM1_ELEMS}, {TOTAL_ROUNDS}, {T2}, {TOTAL_ELEMENTS}, {R_P}> {{
     PoseidonParameters {{
         M: 128,
-        arc: ArcMatrix::<{TOTAL_ROUNDS}, 3, {TOTAL_ELEMENTS}>::new_from_known([
+        arc: ArcMatrix::<{TOTAL_ROUNDS}, {T2}, {TOTAL_ELEMENTS}>::new_from_known([
 "#,
-        TOTAL_ROUNDS = TOTAL_ROUNDS,
-        TOTAL_ELEMENTS = TOTAL_ROUNDS * T,
-        R_P = R_P
+        RATE = rate,
+        T = t,
+        SM1 = sm1,
+        MDS_ELEMS = mds_elements,
+        SM1_ELEMS = sm1_elements,
+        TOTAL_ROUNDS = total_rounds,
+        T2 = t,
+        TOTAL_ELEMENTS = total_elements,
+        R_P = r_p,
     )
     .unwrap();
 
     emit_fq_array(&mut s, &arc.data, "            ");
     write!(s, "        ]),\n").unwrap();
 
-    // MDS
-    write!(s, "        mds: MdsMatrix::<3, 2, 9, 4>::new_from_known([\n").unwrap();
+    write!(s, "        mds: MdsMatrix::<{}, {}, {}, {}>::new_from_known([\n", t, sm1, mds_elements, sm1_elements).unwrap();
     emit_fq_array(&mut s, &mds.data, "            ");
     write!(s, "        ]),\n").unwrap();
 
-    // Alpha and rounds
     write!(
         s,
-        "        alpha: Alpha::Exponent(5),\n        rounds: RoundNumbers {{ r_P: {R_P}, r_F: {R_F} }},\n"
+        "        alpha: Alpha::Exponent(5),\n        rounds: RoundNumbers {{ r_P: {}, r_F: {} }},\n",
+        r_p, R_F
     )
     .unwrap();
 
-    // Optimized MDS
     write!(s, "        optimized_mds: OptimizedMdsMatrices {{\n").unwrap();
 
-    // M_hat
     write!(s, "            M_hat: ").unwrap();
-    emit_square_matrix(&mut s, &m_hat, "SquareMatrix::<2, 4>");
+    emit_square_matrix(&mut s, &m_hat, &format!("SquareMatrix::<{}, {}>", sm1, sm1_elements));
     write!(s, ",\n").unwrap();
 
-    // v
     write!(s, "            v: ").unwrap();
-    emit_matrix_1xN(&mut s, &v, "Matrix::<1, 2, 2>");
+    emit_matrix_1xN(&mut s, &v, &format!("Matrix::<1, {}, {}>", sm1, sm1));
     write!(s, ",\n").unwrap();
 
-    // w
     write!(s, "            w: ").unwrap();
-    emit_matrix_1xN(&mut s, &w, "Matrix::<2, 1, 2>");
+    emit_matrix_1xN(&mut s, &w, &format!("Matrix::<{}, 1, {}>", sm1, sm1));
     write!(s, ",\n").unwrap();
 
-    // M_prime
     write!(s, "            M_prime: ").unwrap();
-    emit_square_matrix(&mut s, &m_prime, "SquareMatrix::<3, 9>");
+    emit_square_matrix(&mut s, &m_prime, &format!("SquareMatrix::<{}, {}>", t, mds_elements));
     write!(s, ",\n").unwrap();
 
-    // M_doubleprime
     write!(s, "            M_doubleprime: ").unwrap();
-    emit_square_matrix(&mut s, &m_doubleprime, "SquareMatrix::<3, 9>");
+    emit_square_matrix(&mut s, &m_doubleprime, &format!("SquareMatrix::<{}, {}>", t, mds_elements));
     write!(s, ",\n").unwrap();
 
-    // M_inverse
     write!(s, "            M_inverse: ").unwrap();
-    emit_square_matrix(&mut s, &m_inverse, "SquareMatrix::<3, 9>");
+    emit_square_matrix(&mut s, &m_inverse, &format!("SquareMatrix::<{}, {}>", t, mds_elements));
     write!(s, ",\n").unwrap();
 
-    // M_hat_inverse
     write!(s, "            M_hat_inverse: ").unwrap();
-    emit_square_matrix(&mut s, &m_hat_inv, "SquareMatrix::<2, 4>");
+    emit_square_matrix(&mut s, &m_hat_inv, &format!("SquareMatrix::<{}, {}>", sm1, sm1_elements));
     write!(s, ",\n").unwrap();
 
-    // M_00
     write!(s, "            M_00: {},\n", format_fq(m00)).unwrap();
 
-    // M_i
     write!(s, "            M_i: ").unwrap();
-    emit_square_matrix(&mut s, &m_i, "Matrix::<3, 3, 9>");
+    emit_square_matrix(&mut s, &m_i, &format!("Matrix::<{}, {}, {}>", t, t, mds_elements));
     write!(s, ",\n").unwrap();
 
-    // v_collection
     write!(s, "            v_collection: [\n").unwrap();
     for v_mat in &v_collection {
         write!(s, "                ").unwrap();
-        emit_matrix_1xN(&mut s, v_mat, "Matrix::<1, 2, 2>");
+        emit_matrix_1xN(&mut s, v_mat, &format!("Matrix::<1, {}, {}>", sm1, sm1));
         write!(s, ",\n").unwrap();
     }
     write!(s, "            ],\n").unwrap();
 
-    // w_hat_collection
     write!(s, "            w_hat_collection: [\n").unwrap();
     for w_mat in &w_hat_collection {
         write!(s, "                ").unwrap();
-        emit_matrix_1xN(&mut s, w_mat, "Matrix::<2, 1, 2>");
+        emit_matrix_1xN(&mut s, w_mat, &format!("Matrix::<{}, 1, {}>", sm1, sm1));
         write!(s, ",\n").unwrap();
     }
     write!(s, "            ],\n").unwrap();
 
     write!(s, "        }},\n").unwrap();
 
-    // Optimized ARC
     write!(
         s,
-        "        optimized_arc: OptimizedArcMatrix::<{TOTAL_ROUNDS}, 3, {TOTAL_ELEMENTS}>::new_from_known([\n",
-        TOTAL_ROUNDS = TOTAL_ROUNDS,
-        TOTAL_ELEMENTS = TOTAL_ROUNDS * T,
+        "        optimized_arc: OptimizedArcMatrix::<{}, {}, {}>::new_from_known([\n",
+        total_rounds, t, total_elements,
     )
     .unwrap();
     emit_fq_array(&mut s, &opt_arc.data, "            ");
