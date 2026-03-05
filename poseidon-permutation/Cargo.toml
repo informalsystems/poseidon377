@@ -3,13 +3,12 @@ name = "poseidon-permutation"
 version = "1.1.0"
 edition = "2018"
 authors = ["Penumbra <team@penumbralabs.xyz>", "redshiftzero <jen@penumbralabs.xyz>"]
-description = "An instantiation of the Poseidon permutation for decaf377"
+description = "An instantiation of the Poseidon permutation for cycles-curve-bn254"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/penumbra-zone/poseidon377"
 
 [dependencies]
-decaf377 = { git = "https://github.com/hu55a1n1/decaf377.git",  version="0.10.1", default-features = false }
-cycles-curve-bn254 ={ path = "../../cycles-curve" }
+cycles-curve-bn254 = { path = "../../cycles-curve" }
 
 ark-ff = { version = "0.4", default-features = false, optional=true }
 ark-std = { version = "^0.4.0", default-features = false, optional=true }
@@ -20,10 +19,9 @@ poseidon-parameters = { path = "../poseidon-parameters", default-features = fals
 
 [features]
 default = ["std"]
-r1cs = ["std", "ark-ff/std", "ark-r1cs-std", "ark-relations", "decaf377/r1cs"]
+r1cs = ["std", "ark-ff/std", "ark-r1cs-std", "ark-relations"]
 std = [
     "ark-ff/std",
     "ark-std/std",
     "poseidon-parameters/std",
-    "decaf377/std",
 ]

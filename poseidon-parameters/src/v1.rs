@@ -7,7 +7,7 @@ pub use crate::{
     matrix_ops::SquareMatrixOperations, mds_matrix::MdsMatrix, mds_matrix::OptimizedMdsMatrices,
 };
 
-/// A set of Poseidon1 parameters for a given set of input parameters over decaf377::Fq.
+/// A set of Poseidon1 parameters for a given set of input parameters over cycles_curve_bn254::Fq.
 ///
 /// The const `STATE_SIZE` corresponds to $t$ in the paper, the width of the hash function,
 /// e.g. $t=3$ corresponds to a 2-to-1 hash.

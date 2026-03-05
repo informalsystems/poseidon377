@@ -11,7 +11,7 @@ license = "MIT OR Apache-2.0"
 repository = "https://github.com/penumbra-zone/poseidon377"
 
 [dependencies]
-decaf377 = { git = "https://github.com/hu55a1n1/decaf377.git" }
+# decaf377 = { git = "https://github.com/hu55a1n1/decaf377.git" }
 cycles-curve-bn254 ={ path = "../../cycles-curve" }
 
 poseidon-parameters = { version = "1.1", path = "../poseidon-parameters", default-features = false }
@@ -28,10 +28,9 @@ ark-serialize = { version = "0.4", default_features = false, optional = true }
 
 [features]
 default = ["arkworks"]
-alloc = ["decaf377/alloc"]
+alloc = []
 arkworks = [
     "std",
-    "decaf377/arkworks",
     "ark-ff/std",
     "ark-groth16/std",
     "ark-r1cs-std",
@@ -47,7 +46,6 @@ r1cs = [
     "ark-relations",
     "ark-snark",
     "ark-r1cs-std",
-    "decaf377/r1cs",
     "poseidon-permutation/r1cs",
     "ark-std",
     "ark-ec",
@@ -57,11 +55,10 @@ parallel = [
     "ark-ff/parallel",
     "ark-groth16/parallel",
     "ark-r1cs-std/parallel",
-    "decaf377/parallel",
     "ark-std/parallel",
     "ark-ec/parallel",
 ]
-u32_backend = ["decaf377/u32_backend"]
+u32_backend = []
 
 [dev-dependencies]
 serde_json = "1"

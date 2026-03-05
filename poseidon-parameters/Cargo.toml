@@ -9,15 +9,9 @@ keywords = ["no_std"]
 repository = "https://github.com/penumbra-zone/poseidon377"
 
 [dependencies]
-# decaf377 = { git = "https://github.com/hu55a1n1/decaf377.git", default-features = false }
-cycles-curve-bn254 ={ path = "../../cycles-curve" }
-
+cycles-curve-bn254 = { path = "../../cycles-curve" }
 
 [features]
 default = ["std"]
-alloc = [
-    # "decaf377/alloc"
-]
-std = [
-    # "decaf377/std",
-]
+alloc = []
+std = []

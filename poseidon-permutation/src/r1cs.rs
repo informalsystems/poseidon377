@@ -84,7 +84,7 @@ impl<
         instance.permute();
 
         // Emit a single element since this is a n:1 hash.
-        instance.state_words[1].clone()
+        instance.state_words[0].clone()
     }
 
     /// Poseidon permutation.

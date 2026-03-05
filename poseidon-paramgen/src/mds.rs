@@ -37,7 +37,7 @@ pub fn v1_generate<
 /// must begin again for another random choice of $x_i$, $y_j$ until a secure choice is found.
 ///
 /// However, here we use a deterministic method for creating Cauchy matrices that has
-/// been empirically checked to be safe using the three algorithms above over `decaf377` for t=1-100.
+/// been empirically checked to be safe using the three algorithms above over `cycles-curve-bn254` for t=1-100.
 pub fn fixed_cauchy_matrix<
     F: PrimeField,
     const STATE_SIZE: usize,
