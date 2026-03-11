@@ -15,11 +15,10 @@ pub fn hash_2(domain_separator: &Fq, value: (Fq, Fq)) -> Fq {
 }
 
 /// Hash three [`Fq`] elements with the provided `domain_separator`.
-pub fn hash_3(_domain_separator: &Fq, _value: (Fq, Fq, Fq)) -> Fq {
-    unimplemented!("hash_3 parameters not yet updated to iden3")
-    // let params = &crate::RATE_3_PARAMS;
-    // let mut state = Instance::new(params);
-    // state.n_to_1_fixed_hash(&[*_domain_separator, _value.0, _value.1, _value.2])
+pub fn hash_3(domain_separator: &Fq, value: (Fq, Fq, Fq)) -> Fq {
+    let params = &crate::RATE_3_PARAMS;
+    let mut state = Instance::new(params);
+    state.n_to_1_fixed_hash(&[*domain_separator, value.0, value.1, value.2])
 }
 
 /// Hash four [`Fq`] elements with the provided `domain_separator`.
@@ -30,25 +29,23 @@ pub fn hash_4(domain_separator: &Fq, value: (Fq, Fq, Fq, Fq)) -> Fq {
 }
 
 /// Hash five [`Fq`] elements with the provided `domain_separator`.
-pub fn hash_5(_domain_separator: &Fq, _value: (Fq, Fq, Fq, Fq, Fq)) -> Fq {
-    unimplemented!("hash_5 parameters not yet updated to iden3")
-    // let params = &crate::RATE_5_PARAMS;
-    // let mut state = Instance::new(params);
-    // state.n_to_1_fixed_hash(&[
-    //     *_domain_separator,
-    //     _value.0, _value.1, _value.2, _value.3, _value.4,
-    // ])
+pub fn hash_5(domain_separator: &Fq, value: (Fq, Fq, Fq, Fq, Fq)) -> Fq {
+    let params = &crate::RATE_5_PARAMS;
+    let mut state = Instance::new(params);
+    state.n_to_1_fixed_hash(&[
+        *domain_separator,
+        value.0, value.1, value.2, value.3, value.4,
+    ])
 }
 
 /// Hash six [`Fq`] elements with the provided `domain_separator`.
-pub fn hash_6(_domain_separator: &Fq, _value: (Fq, Fq, Fq, Fq, Fq, Fq)) -> Fq {
-    unimplemented!("hash_6 parameters not yet updated to iden3")
-    // let params = &crate::RATE_6_PARAMS;
-    // let mut state = Instance::new(params);
-    // state.n_to_1_fixed_hash(&[
-    //     *_domain_separator,
-    //     _value.0, _value.1, _value.2, _value.3, _value.4, _value.5,
-    // ])
+pub fn hash_6(domain_separator: &Fq, value: (Fq, Fq, Fq, Fq, Fq, Fq)) -> Fq {
+    let params = &crate::RATE_6_PARAMS;
+    let mut state = Instance::new(params);
+    state.n_to_1_fixed_hash(&[
+        *domain_separator,
+        value.0, value.1, value.2, value.3, value.4, value.5,
+    ])
 }
 
 /// Hash seven [`Fq`] elements with the provided `domain_separator`.

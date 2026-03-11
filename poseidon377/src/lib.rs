@@ -13,18 +13,18 @@ pub const RATE_1_PARAMS: PoseidonParameters<2, 1, 4, 1, 64, 2, 128, 56> = params
 pub const RATE_2_PARAMS: PoseidonParameters<3, 2, 9, 4, 65, 3, 195, 57> = params::rate_2::rate_2();
 
 /// Parameters for the rate-3 instance of Poseidon.
-pub const RATE_3_PARAMS: PoseidonParameters<4, 3, 16, 9, 39, 4, 156, 31> = params::rate_3::rate_3();
+pub const RATE_3_PARAMS: PoseidonParameters<4, 3, 16, 9, 64, 4, 256, 56> = params::rate_3::rate_3();
 
 /// Parameters for the rate-4 instance of Poseidon.
 pub const RATE_4_PARAMS: PoseidonParameters<5, 4, 25, 16, 68, 5, 340, 60> =
     params::rate_4::rate_4();
 
 /// Parameters for the rate-5 instance of Poseidon.
-pub const RATE_5_PARAMS: PoseidonParameters<6, 5, 36, 25, 39, 6, 234, 31> =
+pub const RATE_5_PARAMS: PoseidonParameters<6, 5, 36, 25, 68, 6, 408, 60> =
     params::rate_5::rate_5();
 
 /// Parameters for the rate-6 instance of Poseidon.
-pub const RATE_6_PARAMS: PoseidonParameters<7, 6, 49, 36, 39, 7, 273, 31> =
+pub const RATE_6_PARAMS: PoseidonParameters<7, 6, 49, 36, 71, 7, 497, 63> =
     params::rate_6::rate_6();
 
 /// Parameters for the rate-7 instance of Poseidon.
