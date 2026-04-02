@@ -157,8 +157,10 @@ separator.
 ### 5. Old test vectors removed
 
 The original Penumbra test vectors in `poseidon377/src/hash.rs` are commented out since
-they are specific to the decaf377 parameterization. A test for `hash_2` against the
-canonical iden3 test vector is included in `poseidon377/src/hash.rs`.
+they are specific to the decaf377 parameterization. All seven hash functions
+(`test_hash_1_iden3` through `test_hash_7_iden3`) are tested against expected values
+computed by iden3's `circomlibjs` `poseidon_opt.js`, using domain separator 0 and
+inputs [1, 2, ..., N].
 
 ## Validation
 

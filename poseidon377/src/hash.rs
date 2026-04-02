@@ -60,23 +60,90 @@ pub fn hash_7(domain_separator: &Fq, value: (Fq, Fq, Fq, Fq, Fq, Fq, Fq)) -> Fq 
 
 #[cfg(test)]
 mod test {
+    use core::str::FromStr;
     use super::*;
 
-    /// Verifies hash_2 matches the canonical Solana/iden3 test vector.
-    /// Reference: https://docs.rs/solana-poseidon/latest/solana_poseidon/fn.hashv.html
+    /// All test vectors computed with iden3's circomlibjs poseidon_opt.js
+    /// using domain_separator = 0 and inputs = [1, 2, ..., N].
+    fn d() -> Fq { Fq::from(0u64) }
+
     #[test]
-    fn hash_2_solana_test_vector() {
-        let input1 = Fq::from_le_bytes_mod_order(&[1u8; 32]);
-        let input2 = Fq::from_le_bytes_mod_order(&[2u8; 32]);
-        let domain_sep = Fq::from(0u64);
-        let result = hash_2(&domain_sep, (input1, input2));
-        let mut expected_le: [u8; 32] = [
-            13, 84, 225, 147, 143, 138, 140, 28, 125, 235, 94, 3, 85, 242, 99, 25, 32, 123, 132,
-            254, 156, 162, 206, 27, 38, 231, 53, 200, 41, 130, 25, 144,
-        ];
-        expected_le.reverse();
-        let expected = Fq::from_le_bytes_mod_order(&expected_le);
-        assert_eq!(result, expected, "hash_2 does not match Solana test vector");
+    fn test_hash_1_iden3() {
+        let expected = Fq::from_str(
+            "18586133768512220936620570745912940619677854269274689475585506675881198879027",
+        ).unwrap();
+        assert_eq!(hash_1(&d(), Fq::from(1u64)), expected);
+    }
+
+    #[test]
+    fn test_hash_2_iden3() {
+        let expected = Fq::from_str(
+            "7853200120776062878684798364095072458815029376092732009249414926327459813530",
+        ).unwrap();
+        assert_eq!(hash_2(&d(), (Fq::from(1u64), Fq::from(2u64))), expected);
+    }
+
+    #[test]
+    fn test_hash_3_iden3() {
+        let expected = Fq::from_str(
+            "6542985608222806190361240322586112750744169038454362455181422643027100751666",
+        ).unwrap();
+        assert_eq!(
+            hash_3(&d(), (Fq::from(1u64), Fq::from(2u64), Fq::from(3u64))),
+            expected,
+        );
+    }
+
+    #[test]
+    fn test_hash_4_iden3() {
+        let expected = Fq::from_str(
+            "18821383157269793795438455681495246036402687001665670618754263018637548127333",
+        ).unwrap();
+        assert_eq!(
+            hash_4(&d(), (Fq::from(1u64), Fq::from(2u64), Fq::from(3u64), Fq::from(4u64))),
+            expected,
+        );
+    }
+
+    #[test]
+    fn test_hash_5_iden3() {
+        let expected = Fq::from_str(
+            "6183221330272524995739186171720101788151706631170188140075976616310159254464",
+        ).unwrap();
+        assert_eq!(
+            hash_5(&d(), (
+                Fq::from(1u64), Fq::from(2u64), Fq::from(3u64), Fq::from(4u64), Fq::from(5u64),
+            )),
+            expected,
+        );
+    }
+
+    #[test]
+    fn test_hash_6_iden3() {
+        let expected = Fq::from_str(
+            "20400040500897583745843009878988256314335038853985262692600694741116813247201",
+        ).unwrap();
+        assert_eq!(
+            hash_6(&d(), (
+                Fq::from(1u64), Fq::from(2u64), Fq::from(3u64),
+                Fq::from(4u64), Fq::from(5u64), Fq::from(6u64),
+            )),
+            expected,
+        );
+    }
+
+    #[test]
+    fn test_hash_7_iden3() {
+        let expected = Fq::from_str(
+            "12748163991115452309045839028154629052133952896122405799815156419278439301912",
+        ).unwrap();
+        assert_eq!(
+            hash_7(&d(), (
+                Fq::from(1u64), Fq::from(2u64), Fq::from(3u64), Fq::from(4u64),
+                Fq::from(5u64), Fq::from(6u64), Fq::from(7u64),
+            )),
+            expected,
+        );
     }
 }
 
