@@ -50,6 +50,7 @@ r1cs = [
     "ark-std",
     "ark-ec",
     "ark-serialize",
+    "cycles-curve-bn254/r1cs"
 ]
 parallel = [
     "ark-ff/parallel",
