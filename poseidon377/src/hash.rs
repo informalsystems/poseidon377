@@ -49,18 +49,39 @@ pub fn hash_6(domain_separator: &Fq, value: (Fq, Fq, Fq, Fq, Fq, Fq)) -> Fq {
 }
 
 /// Hash seven [`Fq`] elements with the provided `domain_separator`.
-pub fn hash_7(_domain_separator: &Fq, _value: (Fq, Fq, Fq, Fq, Fq, Fq, Fq)) -> Fq {
-    unimplemented!("hash_7 parameters not yet updated to iden3")
-    // let params = &crate::RATE_7_PARAMS;
-    // let mut state = Instance::new(params);
-    // state.n_to_1_fixed_hash(&[
-    //     *_domain_separator,
-    //     _value.0, _value.1, _value.2, _value.3, _value.4, _value.5, _value.6,
-    // ])
+pub fn hash_7(domain_separator: &Fq, value: (Fq, Fq, Fq, Fq, Fq, Fq, Fq)) -> Fq {
+    let params = &crate::RATE_7_PARAMS;
+    let mut state = Instance::new(params);
+    state.n_to_1_fixed_hash(&[
+        *domain_separator,
+        value.0, value.1, value.2, value.3, value.4, value.5, value.6,
+    ])
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    /// Verifies hash_2 matches the canonical Solana/iden3 test vector.
+    /// Reference: https://docs.rs/solana-poseidon/latest/solana_poseidon/fn.hashv.html
+    #[test]
+    fn hash_2_solana_test_vector() {
+        let input1 = Fq::from_le_bytes_mod_order(&[1u8; 32]);
+        let input2 = Fq::from_le_bytes_mod_order(&[2u8; 32]);
+        let domain_sep = Fq::from(0u64);
+        let result = hash_2(&domain_sep, (input1, input2));
+        let mut expected_le: [u8; 32] = [
+            13, 84, 225, 147, 143, 138, 140, 28, 125, 235, 94, 3, 85, 242, 99, 25, 32, 123, 132,
+            254, 156, 162, 206, 27, 38, 231, 53, 200, 41, 130, 25, 144,
+        ];
+        expected_le.reverse();
+        let expected = Fq::from_le_bytes_mod_order(&expected_le);
+        assert_eq!(result, expected, "hash_2 does not match Solana test vector");
+    }
 }
 
 // #[cfg(test)]
-// mod test {
+// mod test_penumbra {
 //     use core::str::FromStr;
 
 //     use super::*;

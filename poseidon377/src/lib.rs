@@ -28,7 +28,7 @@ pub const RATE_6_PARAMS: PoseidonParameters<7, 6, 49, 36, 71, 7, 497, 63> =
     params::rate_6::rate_6();
 
 /// Parameters for the rate-7 instance of Poseidon.
-pub const RATE_7_PARAMS: PoseidonParameters<8, 7, 64, 49, 39, 8, 312, 31> =
+pub const RATE_7_PARAMS: PoseidonParameters<8, 7, 64, 49, 72, 8, 576, 64> =
     params::rate_7::rate_7();
 
 pub use cycles_curve_bn254::Fq;
