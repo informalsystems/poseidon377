@@ -9,7 +9,7 @@ keywords = ["no_std"]
 repository = "https://github.com/penumbra-zone/poseidon377"
 
 [dependencies]
-cycles-curve-bn254 = { path = "../../cycles-curve" }
+cycles-curve-bn254 = { workspace = true }
 
 [features]
 default = ["std"]

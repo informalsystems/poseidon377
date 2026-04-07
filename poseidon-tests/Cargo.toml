@@ -8,11 +8,10 @@ license = "MIT OR Apache-2.0"
 repository = "https://github.com/penumbra-zone/poseidon377"
 
 [dependencies]
-poseidon-parameters = { path = "../poseidon-parameters", default-features = false  }
-#poseidon-paramgen = { path = "../poseidon-paramgen", default-features = false }
-poseidon-permutation = { path="../poseidon-permutation", default-features = false }
-cycles-curve-bn254 = { path = "../../cycles-curve" }
-poseidon377 = { path="../poseidon377", features = ["r1cs"] }
+poseidon-parameters = { workspace = true }
+poseidon-permutation = { workspace = true }
+cycles-curve-bn254 = { workspace = true }
+poseidon377 = { workspace = true, features = ["r1cs"] }
 
 [dev-dependencies]
 ark-ff = { version = "^0.4.0", default-features = false }

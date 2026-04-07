@@ -1,13 +1,23 @@
 [workspace]
+resolver = "2"
 
 members = [
     "poseidon377",
-    # "poseidon-paramgen" # Temporarily excluded until refactored
     "poseidon-permutation",
     "poseidon-consistency",
     "poseidon-parameters",
     "poseidon-tests",
+    # "poseidon-paramgen", # Broken build; still listed in workspace.dependencies.
 ]
+
+[workspace.dependencies]
+poseidon-parameters  = { path = "poseidon-parameters", version = "1.1", default-features = false }
+poseidon-paramgen    = { path = "poseidon-paramgen", default-features = false }
+poseidon377          = { path = "poseidon377", default-features = false }
+poseidon-permutation = { path = "poseidon-permutation", version = "1.1", default-features = false }
+
+cycles-curve-bn254   = { git = "https://github.com/cycles-money/cycles-curve/" }
 
 [profile.release]
 debug = true
+

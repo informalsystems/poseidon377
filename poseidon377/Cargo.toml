@@ -12,10 +12,10 @@ repository = "https://github.com/penumbra-zone/poseidon377"
 
 [dependencies]
 # decaf377 = { git = "https://github.com/hu55a1n1/decaf377.git" }
-cycles-curve-bn254 ={ path = "../../cycles-curve" }
+cycles-curve-bn254 = { workspace = true }
 
-poseidon-parameters = { version = "1.1", path = "../poseidon-parameters", default-features = false }
-poseidon-permutation = { version = "1.1", path = "../poseidon-permutation", default-features = false }
+poseidon-parameters = { workspace = true }
+poseidon-permutation = { workspace = true }
 
 ark-ff = { version = "0.4", default-features = false, optional = true }
 ark-groth16 = { version = "0.4", default-features = false, optional = true }

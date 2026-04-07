@@ -8,11 +8,10 @@ license = "MIT OR Apache-2.0"
 repository = "https://github.com/penumbra-zone/poseidon377"
 
 [dependencies]
-poseidon-parameters = { path = "../poseidon-parameters", default-features = false  }
-#poseidon-paramgen = { path = "../poseidon-paramgen", default-features = false }
-poseidon377 = { path = "../poseidon377", default-features = false }
-poseidon-permutation = { path="../poseidon-permutation", default-features = false }
-cycles-curve-bn254 = { path = "../../cycles-curve" }
+poseidon-parameters = { workspace = true }
+poseidon377 = { workspace = true }
+poseidon-permutation = { workspace = true }
+cycles-curve-bn254 = { workspace = true }
 
 [dev-dependencies]
 criterion = { version = "0.4", features=["html_reports"] }
