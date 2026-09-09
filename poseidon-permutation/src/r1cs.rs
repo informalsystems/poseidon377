@@ -2,7 +2,7 @@
 use ark_std::vec::Vec;
 
 use ark_r1cs_std::{fields::fp::FpVar, prelude::*};
-use ark_relations::r1cs::ConstraintSystemRef;
+use ark_relations::gr1cs::ConstraintSystemRef;
 use cycles_curve_bn254::Fq;
 use poseidon_parameters::v1::{Alpha, MatrixOperations, PoseidonParameters};
 
