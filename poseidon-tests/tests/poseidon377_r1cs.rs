@@ -2,7 +2,7 @@ use std::{fs, io::BufWriter, path::PathBuf};
 
 use ark_groth16::{r1cs_to_qap::LibsnarkReduction, Groth16, ProvingKey, VerifyingKey};
 use ark_r1cs_std::prelude::{AllocVar, EqGadget};
-use ark_relations::r1cs::{ConstraintSynthesizer, ToConstraintField};
+use ark_relations::gr1cs::{ConstraintSynthesizer, ToConstraintField};
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 use ark_snark::SNARK;
 use cycles_curve_bn254::{
@@ -59,8 +59,8 @@ struct PreimageCircuit {
 impl ConstraintSynthesizer<Fq> for PreimageCircuit {
     fn generate_constraints(
         self,
-        cs: ark_relations::r1cs::ConstraintSystemRef<Fq>,
-    ) -> ark_relations::r1cs::Result<()> {
+        cs: ark_relations::gr1cs::ConstraintSystemRef<Fq>,
+    ) -> ark_relations::gr1cs::Result<()> {
         // Add all witnesses
         let mut preimage_vars = Vec::new();
         for value in self.preimages {

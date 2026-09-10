@@ -17,14 +17,14 @@ cycles-curve-bn254 = { workspace = true }
 poseidon-parameters = { workspace = true }
 poseidon-permutation = { workspace = true }
 
-ark-ff = { version = "0.4", default-features = false, optional = true }
-ark-groth16 = { version = "0.4", default-features = false, optional = true }
-ark-r1cs-std = { version = "0.4", default-features = false, optional = true }
-ark-relations = { version = "0.4", default-features = false, optional = true }
-ark-snark = { version = "0.4", default-features = false, optional = true }
-ark-ec = { version = "0.4", default_features = false, optional = true }
-ark-std = { version = "0.4", default-features = false, optional = true }
-ark-serialize = { version = "0.4", default_features = false, optional = true }
+ark-ff = { version = "0.6.0", default-features = false, optional = true }
+ark-groth16 = { version = "0.6.0", default-features = false, optional = true }
+ark-r1cs-std = { version = "0.6.0", default-features = false, optional = true }
+ark-relations = { version = "0.6.0", default-features = false, optional = true }
+ark-snark = { version = "0.6.0", default-features = false, optional = true }
+ark-ec = { version = "0.6.0", default_features = false, optional = true }
+ark-std = { version = "0.6.0", default-features = false, optional = true }
+ark-serialize = { version = "0.6.0", default_features = false, optional = true }
 
 [features]
 default = ["arkworks"]
@@ -33,7 +33,7 @@ arkworks = [
     "std",
     "ark-ff/std",
     "ark-groth16/std",
-    "ark-r1cs-std",
+    "ark-r1cs-std/std",
     "ark-relations/std",
     "ark-std/std",
     "ark-ec/std",

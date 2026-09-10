@@ -1,4 +1,4 @@
-use ark_relations::r1cs::{ConstraintSystemRef, SynthesisError};
+use ark_relations::gr1cs::{ConstraintSystemRef, SynthesisError};
 use cycles_curve_bn254::r1cs::FqVar;
 use poseidon_permutation::r1cs::InstanceVar;
 
