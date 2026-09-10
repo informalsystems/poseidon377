@@ -16,7 +16,7 @@ poseidon-paramgen    = { path = "poseidon-paramgen", default-features = false }
 poseidon377          = { path = "poseidon377", default-features = false }
 poseidon-permutation = { path = "poseidon-permutation", version = "1.1", default-features = false }
 
-cycles-curve-bn254   = { git = "https://github.com/cycles-money/cycles-curve/", branch = "zkperf/arkworks-0.6" }
+cycles-curve-bn254   = { git = "https://github.com/cycles-money/cycles-curve/", tag = "v1.0.0-alpha.2+arc" }
 
 [profile.release]
 debug = true
